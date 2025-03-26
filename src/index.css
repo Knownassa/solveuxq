@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 5% 96%; /* Dark Ash White - Light Mode Background */
+    --foreground: 220 20% 10%; /* Dark text for light mode */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 220 70% 48%; /* Blue - Primary color */
+    --primary-foreground: 0 0% 100%; /* White text on blue */
+
+    --secondary: 240 5% 90%; /* Slightly darker ash white for secondary */
+    --secondary-foreground: 220 20% 10%;
+
+    --muted: 240 5% 90%;
+    --muted-foreground: 220 8.9% 46.9%;
+
+    --accent: 220 70% 48%; /* Blue - Accent color */
+    --accent-foreground: 0 0% 100%; /* White text on blue */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 70% 48%; /* Blue - Ring color */
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 220 20% 10%; /* Dark Ash White - Dark Mode Background (darker shade) */
+    --foreground: 240 5% 80%; /* Lighter text for options in dark mode */
+
+    --card: 225 14% 12%;
+    --card-foreground: 240 5% 80%; /* Lighter card text in dark mode */
+
+    --popover: 225 14% 12%;
+    --popover-foreground: 240 5% 96%;
+
+    --primary: 220 70% 48%; /* Blue - Primary color for dark mode */
+    --primary-foreground: 0 0% 100%; /* White text on blue */
+
+    --secondary: 225 14% 16%; /* Slightly darker ash white for secondary in dark mode */
+    --secondary-foreground: 240 5% 80%; /* Lighter secondary text in dark mode */
+
+    --muted: 225 14% 16%;
+    --muted-foreground: 220 14% 70%;
+
+    --accent: 220 70% 48%; /* Blue - Accent color for dark mode */
+    --accent-foreground: 0 0% 100%; /* White text on blue */
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 225 14% 16%;
+    --input: 225 14% 16%;
+    --ring: 220 70% 48%; /* Blue - Ring color for dark mode */
+
+    --sidebar-background: 225 14% 10%;
+    --sidebar-foreground: 240 5% 96%;
+    --sidebar-primary: 211 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 14% 16%;
+    --sidebar-accent-foreground: 240 5% 96%;
+    --sidebar-border: 225 14% 16%;
+    --sidebar-ring: 211 100% 50%;
+  }
+
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply text-white; /* White headers in dark mode */
+  }
+
+  .dark .neo-button.neo-button-secondary {
+    @apply text-foreground dark:text-white; /* White text for secondary button in dark mode */
+  }
+}
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-800/20 shadow-lg;
+  }
+
+  .neo-button {
+    @apply relative overflow-hidden inline-flex items-center justify-center px-6 py-3
+           text-base font-medium rounded-full transition-all duration-300
+           shadow-md hover:shadow-lg active:shadow-sm
+           bg-primary dark:bg-primary
+           hover:bg-primary/90 dark:hover:bg-primary/90
+           text-primary-foreground dark:text-primary-foreground active:scale-[0.98]; /* Blue button with white text */
+  }
+
+  .neo-button-secondary {
+    @apply relative overflow-hidden inline-flex items-center justify-center px-6 py-3
+           text-base font-medium rounded-full transition-all duration-300
+           shadow-sm hover:shadow-md
+           border border-gray-200 dark:border-gray-700
+           bg-gray-50 dark:bg-gray-800
+           hover:bg-gray-100 dark:hover:bg-gray-700
+           text-gray-700 dark:text-gray-200 active:scale-[0.98];
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-md;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
