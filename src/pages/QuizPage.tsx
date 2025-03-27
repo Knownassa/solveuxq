@@ -372,7 +372,7 @@ const QuizPage = () => {
               {/* Security Warning */}
               <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md text-xs max-w-md mx-auto">
                 <AlertTriangle className="inline w-4 h-4 mr-1" />
-                <strong>Warning:</strong> Google API key is currently hardcoded. For production, use a secure backend proxy.
+                <strong>Alpha Version:</strong> This is an alpha version (0.1.0) using solveUXQ AI.
               </div>
               <button
                 onClick={handleGenerateAndStart} // This button now triggers the API call

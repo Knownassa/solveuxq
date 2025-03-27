@@ -15,13 +15,13 @@ const CategoriesPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12 text-center"
         >
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Explore Categories</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Explore Quizzes</h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Browse our selection of quizzes categorized by different skills and domains.
             Select a category to explore the available quizzes.
           </p>
         </motion.div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {quizCategories.map((category, index) => (
             <CategoryCard key={category.id} category={category} index={index} />
