@@ -8,6 +8,7 @@ import AnimatedCard from '@/components/ui/AnimatedCard';
 import { quizCategories, Question } from '@/utils/quizData'; // Assuming Question type is defined here
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { getOpenRouterCompletion } from '@/lib/ai'; // Import the new AI function
 
 // Updated helper function to parse JSON potentially wrapped in markdown or with surrounding text
 const parseJsonResponse = (text: string): any => {
@@ -73,9 +74,7 @@ const QuizPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // IMPORTANT: Replace with secure handling (e.g., backend proxy) in production
-  const OPENROUTER_API_KEY = "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"; // Your Openrouter API Key
-  const GEMINI_MODEL = "google/gemini-2.0-pro-exp-02-05:free"; // Using the latest flash model (confirm if user meant another)
+  // Removed OPENROUTER_API_KEY and GEMINI_MODEL constants as they are handled in getOpenRouterCompletion
 
   const handleGenerateAndStart = async () => {
     if (!category) {
@@ -118,66 +117,12 @@ const QuizPage = () => {
       }`;
 
     try {
-      console.log("Sending prompt to Openrouter:", prompt);
+      console.log("Sending prompt to getOpenRouterCompletion:", prompt);
 
-      const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+      // --- Use the imported getOpenRouterCompletion function ---
+      const rawContent = await getOpenRouterCompletion(prompt);
+      // --- End of using getOpenRouterCompletion ---
 
-      const requestBody = {
-        "model": "google/gemini-2.0-pro-exp-02-05:free",
-        "messages": [
-          {
-            "role": "user",
-            "content": prompt
-          }
-        ]
-      };
-
-      console.log("Request URL:", API_URL);
-      console.log("Request Body:", JSON.stringify(requestBody, null, 2));
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "http://localhost:5173", // Replace with your actual site URL in production
-          "X-Title": "solveUXQ", // Replace with your actual site name in production
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log("Received response status:", response.status);
-
-      if (!response.ok) {
-        // Attempt to read error body as text first, then try JSON
-        let errorPayload: any = null;
-        try {
-            errorPayload = await response.json();
-            console.error("API Error JSON Body:", errorPayload);
-        } catch (jsonError) {
-            console.warn("Could not parse API error response as JSON. Reading as text.");
-            try {
-                const errorText = await response.text();
-                console.error("API Error Text Body:", errorText);
-                errorPayload = { error: { message: errorText } }; // Create a similar structure
-            } catch (textError) {
-                console.error("Could not read API error response as text either.");
-            }
-        }
-        const errorMessage = errorPayload?.error?.message || `HTTP error ${response.status}`;
-        throw new Error(`API Error: ${errorMessage}`);
-      }
-
-      const data = await response.json();
-      console.log("Received API data object:", data); // Log the full data object
-
-      // --- Adjust response handling for Openrouter ---
-      if (!data.choices || data.choices.length === 0 || !data.choices[0].message?.content) {
-        console.error("Invalid response structure from Openrouter API:", data);
-        throw new Error("Invalid response structure from Openrouter API.");
-      }
-
-      const rawContent = data.choices[0].message.content;
       // CRITICAL: Log the raw content BEFORE parsing
       console.log("Raw content string from API:", JSON.stringify(rawContent)); // Stringify to see whitespace/special chars
 
@@ -188,8 +133,6 @@ const QuizPage = () => {
          console.error("Parsed data missing 'questions' array:", parsedData);
          throw new Error("API response, after parsing, does not contain a valid 'questions' array.");
       }
-      // --- End of Openrouter specific handling ---
-
 
       // Basic validation of question structure (can be expanded)
       const isValidQuestions = parsedData.questions.every((q: any) =>
