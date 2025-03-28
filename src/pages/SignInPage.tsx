@@ -16,9 +16,8 @@ const SignInPage = () => {
           <p className="text-gray-600 dark:text-gray-400">Sign in to continue to your account</p>
         </div>
         <SignIn 
-          path="/sign-in"
           signUpUrl="/sign-up"
-          redirectUrl="/quizzes"
+          fallbackRedirectUrl="/quizzes"
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",
