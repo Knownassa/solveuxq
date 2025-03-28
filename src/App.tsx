@@ -76,6 +76,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
+              {/* This catch-all route is crucial for handling Clerk redirects */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

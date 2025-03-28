@@ -21,7 +21,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!isSignedIn) {
-    return <Navigate to="/sign-in" state={{ from: location }} replace />;
+    // Store the path they were trying to access for potential redirect after auth
+    return <Navigate to="/sign-in" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

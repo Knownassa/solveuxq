@@ -1,10 +1,14 @@
 
 import React from 'react';
 import { SignIn } from '@clerk/clerk-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const SignInPage = () => {
+  const location = useLocation();
   const navigate = useNavigate();
+  
+  // Get the page they were trying to access before being redirected to sign in
+  const from = location.state?.from || '/quizzes';
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -17,7 +21,7 @@ const SignInPage = () => {
         </div>
         <SignIn 
           signUpUrl="/sign-up"
-          fallbackRedirectUrl="/quizzes"
+          redirectUrl={from}
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",
