@@ -74,6 +74,8 @@ const AboutPage = () => {
               className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto text-balance"
             >
               Learn more about our mission to enhance problem-solving skills in UI/UX design, product design, and real-life scenarios through engaging quizzes and AI-driven learning.
+              <br /><br />
+              Solveuxq is a progressive web application currently in alpha version 0.1.0. We are continuously working to improve and expand our offerings.
             </motion.p>
 
             <motion.div

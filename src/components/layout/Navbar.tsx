@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { MoonIcon, SunIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 import { useTheme } from '@/hooks/use-theme';
+import { Badge } from '@/components/ui/badge';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -24,8 +25,8 @@ const Navbar = () => {
     <header
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out',
-        scrolled 
-          ? 'py-3 backdrop-blur-lg bg-white/70 dark:bg-gray-900/80 shadow-sm' 
+        scrolled
+          ? 'py-3 backdrop-blur-lg bg-white/70 dark:bg-gray-900/80 shadow-sm'
           : 'py-5 bg-transparent'
       )}
     >
@@ -38,34 +39,46 @@ const Navbar = () => {
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className={cn(
-                "text-sm font-medium transition-colors", 
-                location.pathname === "/" 
-                  ? "text-primary" 
+                "text-sm font-medium transition-colors",
+                location.pathname === "/"
+                  ? "text-primary"
                   : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
               )}
             >
               Home
             </Link>
-            <Link 
-              to="/categories" 
+            <Link
+              to="/study"
               className={cn(
-                "text-sm font-medium transition-colors", 
-                location.pathname === "/categories" 
-                  ? "text-primary" 
+                "text-sm font-medium transition-colors relative flex items-center",
+                location.pathname === "/study"
+                  ? "text-primary"
                   : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
               )}
             >
-              Categories
+              Study
+              <Badge className="ml-2 text-[0.6rem] absolute -top-2 right-[-30px] md:relative md:top-0 md:right-0">Coming Soon</Badge>
             </Link>
-            <Link 
-              to="/about" 
+            <Link
+              to="/quizzes"
               className={cn(
-                "text-sm font-medium transition-colors", 
-                location.pathname === "/about" 
-                  ? "text-primary" 
+                "text-sm font-medium transition-colors",
+                location.pathname === "/quizzes"
+                  ? "text-primary"
+                  : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+              )}
+            >
+              Quizzes
+            </Link>
+            <Link
+              to="/about"
+              className={cn(
+                "text-sm font-medium transition-colors",
+                location.pathname === "/about"
+                  ? "text-primary"
                   : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
               )}
             >
@@ -74,8 +87,8 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <Toggle 
-              aria-label="Toggle theme" 
+            <Toggle
+              aria-label="Toggle theme"
               className="p-2"
               pressed={theme === 'dark'}
               onPressedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
