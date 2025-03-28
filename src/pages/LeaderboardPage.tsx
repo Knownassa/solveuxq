@@ -3,7 +3,7 @@ import React from 'react';
 import Navbar from '@/components/layout/Navbar';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Award, Star } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 
 // Mock data for the leaderboard
 const leaderboardData = [
@@ -20,7 +20,7 @@ const leaderboardData = [
 ];
 
 const LeaderboardPage = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const currentUsername = user?.firstName || "You";
 
   return (
