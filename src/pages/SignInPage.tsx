@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { SignIn } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,8 +16,8 @@ const SignInPage = () => {
           <p className="text-gray-600 dark:text-gray-400">Sign in to continue to your account</p>
         </div>
         <SignIn 
+          path="/sign-in"
           signUpUrl="/sign-up"
-          routing="path"
           redirectUrl="/quizzes"
           appearance={{
             elements: {

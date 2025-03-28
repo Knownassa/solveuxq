@@ -13,8 +13,8 @@ const SignUpPage = () => {
           <p className="text-gray-600 dark:text-gray-400">Create an account to start learning</p>
         </div>
         <SignUp 
+          path="/sign-up"
           signInUrl="/sign-in"
-          routing="path"
           redirectUrl="/"
           appearance={{
             elements: {
