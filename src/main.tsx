@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { ClerkProvider } from '@clerk/clerk-react'
+import { BrowserRouter } from 'react-router-dom'
 
 // Import your Publishable Key
 const PUBLISHABLE_KEY = "pk_test_bmF0aXZlLXRvbWNhdC0yMC5jbGVyay5hY2NvdW50cy5kZXYk";
@@ -21,6 +22,8 @@ createRoot(document.getElementById("root")!).render(
     signUpFallbackRedirectUrl="/"
     afterSignOutUrl="/"
   >
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </ClerkProvider>
 );
