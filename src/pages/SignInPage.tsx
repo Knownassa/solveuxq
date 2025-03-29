@@ -21,7 +21,7 @@ const SignInPage = () => {
         </div>
         <SignIn 
           signUpUrl="/sign-up"
-          redirectUrl={from}
+          afterSignInUrl={from}
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",

@@ -40,7 +40,7 @@ const App = () => (
               <Route path="/about" element={<AboutPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               
-              {/* Auth Routes - Support Clerk's routing patterns */}
+              {/* Auth Routes - Use wildcards to support Clerk's routing patterns */}
               <Route path="/sign-in/*" element={<SignInPage />} />
               <Route path="/sign-up/*" element={<SignUpPage />} />
               
