@@ -65,6 +65,11 @@ const App = () => (
                   <StudyPage />
                 </ProtectedRoute>
               } />
+              <Route path="/study/:categoryId" element={
+                <ProtectedRoute>
+                  <StudyPage />
+                </ProtectedRoute>
+              } />
               <Route path="/leaderboard" element={
                 <ProtectedRoute>
                   <LeaderboardPage />
