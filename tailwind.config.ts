@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 const colors = {
@@ -65,7 +66,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["SF Pro Display", "Inter", "system-ui", "sans-serif"],
+        sans: ["Instrument Sans", "system-ui", "sans-serif"],
         mono: ["SF Mono", "Menlo", "monospace"],
       },
       boxShadow: {
