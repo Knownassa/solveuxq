@@ -11,6 +11,8 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
   const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
   try {
+    console.log("Sending request to OpenRouter API");
+    
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -26,17 +28,28 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
             "role": "user",
             "content": userContent // Use the dynamic user content
           }
-        ]
+        ],
+        "temperature": 0.7
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenRouter API Error:", errorData);
-      throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || response.statusText}`);
+      const errorText = await response.text();
+      console.error(`OpenRouter API Error (${response.status}):`, errorText);
+      
+      let errorMessage;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || `API request failed with status ${response.status}`;
+      } catch {
+        errorMessage = `API request failed with status ${response.status}: ${errorText}`;
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    console.log("Received response from OpenRouter");
 
     // Extract the content from the first choice's message
     if (data.choices && data.choices.length > 0 && data.choices[0].message) {

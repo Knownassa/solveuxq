@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,27 +11,10 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 
-const parseJsonResponse = (response: any): Question[] => {
-  console.log("API response:", response);
-  
-  // If the response is already in the expected format, just return it
-  if (Array.isArray(response.questions)) {
-    return response.questions as Question[];
-  }
-  
-  // If response is in a different format, try to adapt it
-  if (response.data && Array.isArray(response.data.questions)) {
-    return response.data.questions as Question[];
-  }
-  
-  throw new Error("Unexpected response format from API");
-};
-
 const QuizPage = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { getToken } = useAuth();
 
   const difficulty = searchParams.get('difficulty') || 'normal';
   const industry = searchParams.get('industry') || 'any';
@@ -72,17 +54,23 @@ const QuizPage = () => {
       
       console.log("Sending quiz parameters to API:", quizParams);
       
-      // Call our Supabase Edge Function directly
-      const { data, error } = await supabase.functions.invoke('generate-quiz', {
+      // Call our Supabase Edge Function
+      const { data, error: functionError } = await supabase.functions.invoke('generate-quiz', {
         body: quizParams
       });
       
-      if (error) {
-        throw new Error(`Edge function error: ${error.message}`);
+      if (functionError) {
+        console.error("Edge function error:", functionError);
+        throw new Error(`Edge function error: ${functionError.message || "Unknown error"}`);
       }
       
-      if (!data || !data.questions) {
-        throw new Error("No questions returned from the API");
+      if (!data) {
+        throw new Error("No data returned from the function");
+      }
+      
+      if (!data.questions || !Array.isArray(data.questions)) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid quiz format returned from API");
       }
       
       setGeneratedQuestions(data.questions);

@@ -18,16 +18,40 @@ serve(async (req) => {
   }
 
   try {
-    const { category, industry, level, num_questions } = await req.json();
+    // Log incoming request to help with debugging
+    console.log("Received quiz generation request");
+    
+    // Validate API key
+    if (!OPENROUTER_API_KEY) {
+      console.error("Missing OpenRouter API key");
+      return new Response(
+        JSON.stringify({ error: 'OpenRouter API key is not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { category, industry, level, num_questions } = requestData;
     
     if (!category || !level || !num_questions) {
+      console.error("Missing required parameters:", { category, industry, level, num_questions });
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
+        JSON.stringify({ error: 'Missing required parameters: category, level, or num_questions' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Generating quiz: ${category}, ${industry}, ${level}, ${num_questions} questions`);
+    console.log(`Generating quiz: ${category}, ${industry || 'general knowledge'}, ${level}, ${num_questions} questions`);
 
     // Construct the prompt for quiz generation
     const prompt = `Generate a quiz about ${category} with focus on ${industry || 'general knowledge'} 
@@ -56,7 +80,9 @@ serve(async (req) => {
     
     Make sure the quiz is challenging but fair. Do not add any commentary before or after the JSON.`;
 
-    // Call OpenRouter API
+    console.log("Calling OpenRouter API...");
+    
+    // Call OpenRouter API with better error handling
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -78,48 +104,80 @@ serve(async (req) => {
       })
     });
 
+    // Check HTTP status and handle errors
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenRouter API Error:", errorData);
-      throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || response.statusText}`);
+      const errorText = await response.text();
+      console.error(`OpenRouter API Error (${response.status}):`, errorText);
+      
+      let errorMessage;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || `API request failed with status ${response.status}`;
+      } catch {
+        errorMessage = `API request failed with status ${response.status}: ${errorText}`;
+      }
+      
+      return new Response(
+        JSON.stringify({ error: errorMessage }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    // Parse OpenRouter response
     const data = await response.json();
+    console.log("Received response from OpenRouter");
     
     // Extract the content from the first choice's message
-    if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-      const content = data.choices[0].message.content;
+    if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
+      console.error("Unexpected API response format:", JSON.stringify(data));
+      return new Response(
+        JSON.stringify({ error: "Could not extract content from API response" }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const content = data.choices[0].message.content;
+    console.log("Extracted content from OpenRouter response");
+    
+    // Parse the JSON content from the response
+    try {
+      // The AI might include markdown code blocks or other text, so we need to extract just the JSON
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```([\s\S]*?)```/) || [null, content];
+      const jsonContent = jsonMatch[1] || content;
       
-      // Parse the JSON content from the response
-      try {
-        // The AI might include markdown code blocks or other text, so we need to extract just the JSON
-        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```([\s\S]*?)```/) || [null, content];
-        const jsonContent = jsonMatch[1] || content;
-        
-        // Try to parse the JSON
-        const parsedQuiz = JSON.parse(jsonContent.trim());
-        
-        console.log(`Successfully generated ${parsedQuiz.questions?.length || 0} questions`);
-        
+      // Try to parse the JSON
+      const parsedQuiz = JSON.parse(jsonContent.trim());
+      
+      if (!parsedQuiz.questions || !Array.isArray(parsedQuiz.questions)) {
+        console.error("Invalid quiz format - missing questions array:", parsedQuiz);
         return new Response(
-          JSON.stringify(parsedQuiz),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } catch (parseError) {
-        console.error("Error parsing JSON from AI response:", parseError);
-        console.log("Raw content:", content);
-        
-        // If we can't parse it as JSON, return the raw content for debugging
-        return new Response(
-          JSON.stringify({ error: "Failed to parse quiz data", rawContent: content }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: "Invalid quiz format generated" }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-    } else {
-      throw new Error("Could not extract content from API response");
+      
+      console.log(`Successfully generated ${parsedQuiz.questions.length} questions`);
+      
+      return new Response(
+        JSON.stringify(parsedQuiz),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (parseError) {
+      console.error("Error parsing JSON from AI response:", parseError);
+      console.log("Raw content:", content);
+      
+      // Return a more detailed error for debugging
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to parse quiz data", 
+          details: parseError.message,
+          rawContentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '') 
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
   } catch (error) {
-    console.error("Error in generate-quiz function:", error);
+    console.error("Unexpected error in generate-quiz function:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
