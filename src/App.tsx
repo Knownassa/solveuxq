@@ -13,6 +13,7 @@ import AboutPage from "./pages/AboutPage";
 import NotFound from "./pages/NotFound";
 import CategoriesPage from "./pages/CategoriesPage";
 import StudyPage from "./pages/StudyPage";
+import StudyMaterialPage from "./pages/StudyMaterialPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import PricingPage from "./pages/PricingPage";
@@ -67,6 +68,11 @@ const App = () => (
             <Route path="/study/:categoryId" element={
               <ProtectedRoute>
                 <StudyPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/study/:categoryId/:articleId" element={
+              <ProtectedRoute>
+                <StudyMaterialPage />
               </ProtectedRoute>
             } />
             <Route path="/leaderboard" element={

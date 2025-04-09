@@ -1,1 +1,11 @@
+
 project_id = "drgjgkroprkycxdjuknr"
+
+[functions.generate-study-material]
+verify_jwt = false
+
+[functions.get-study-materials]
+verify_jwt = false
+
+[functions.save-study-material]
+verify_jwt = false
