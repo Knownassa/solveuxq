@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -9,7 +10,7 @@ import { quizCategories, Question } from '@/utils/quizData';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
-import { generateQuiz } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 
 const parseJsonResponse = (response: any): Question[] => {
   console.log("API response:", response);
@@ -62,12 +63,6 @@ const QuizPage = () => {
     const industryContext = industry === 'any' ? 'General' : industry;
 
     try {
-      const token = await getToken();
-      
-      if (!token) {
-        throw new Error("You need to be signed in to generate quizzes.");
-      }
-      
       const quizParams = {
         category: category.title,
         industry: industryContext,
@@ -77,10 +72,20 @@ const QuizPage = () => {
       
       console.log("Sending quiz parameters to API:", quizParams);
       
-      const response = await generateQuiz(quizParams, token);
-      const parsedQuestions = parseJsonResponse(response);
+      // Call our Supabase Edge Function directly
+      const { data, error } = await supabase.functions.invoke('generate-quiz', {
+        body: quizParams
+      });
       
-      setGeneratedQuestions(parsedQuestions);
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+      
+      if (!data || !data.questions) {
+        throw new Error("No questions returned from the API");
+      }
+      
+      setGeneratedQuestions(data.questions);
       toast.success("Quiz generated successfully!");
     } catch (err: any) {
       console.error("Error generating quiz:", err);

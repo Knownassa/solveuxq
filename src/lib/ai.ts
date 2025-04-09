@@ -1,5 +1,6 @@
+
 /**
- * Interacts with the OpenRouter API to get a response from the DeepSeek R1 model.
+ * Interacts with the OpenRouter API to get a response from Gemini Pro.
  *
  * @param userContent The content/prompt from the user.
  * @returns A promise that resolves with the AI's response content or rejects with an error.
@@ -19,7 +20,7 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "deepseek/deepseek-r1:free", // Specify the desired model
+        "model": "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini as requested
         "messages": [
           {
             "role": "user",
