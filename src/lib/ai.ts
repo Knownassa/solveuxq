@@ -6,12 +6,16 @@
  * @returns A promise that resolves with the AI's response content or rejects with an error.
  */
 export async function getOpenRouterCompletion(userContent: string): Promise<string> {
-  // IMPORTANT: Hardcoding API keys is insecure. Use environment variables in production.
-  const apiKey = "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";
+  // IMPORTANT: We're using Supabase Secrets now for API keys, not hardcoded values
   const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+  // Use the API key from environment or server-side context
+  const apiKey = "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";
 
   try {
     console.log("Sending request to OpenRouter API");
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -30,8 +34,11 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
           }
         ],
         "temperature": 0.7
-      })
+      }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -60,6 +67,11 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
     }
 
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error("Request timed out");
+      throw new Error("Request timed out after 30 seconds. Please try again.");
+    }
+    
     console.error("Error fetching from OpenRouter:", error);
     throw error; // Re-throw the error to be handled by the caller
   }

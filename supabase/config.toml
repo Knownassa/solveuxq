@@ -62,3 +62,4 @@ port = 54328
 # Function configs for the generate-quiz function
 [functions.generate-quiz]
 verify_jwt = false
+timeouts = { read = 60, connect = 10, write = 10 }

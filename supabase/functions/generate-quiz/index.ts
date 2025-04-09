@@ -82,100 +82,121 @@ serve(async (req) => {
 
     console.log("Calling OpenRouter API...");
     
-    // Call OpenRouter API with better error handling
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://solveuxq.vercel.app", 
-        "X-Title": "SolveUXQ", 
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        "model": "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini as requested
-        "messages": [
-          {
-            "role": "user",
-            "content": prompt
-          }
-        ],
-        "temperature": 0.7,
-        "max_tokens": 4000
-      })
-    });
-
-    // Check HTTP status and handle errors
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`OpenRouter API Error (${response.status}):`, errorText);
-      
-      let errorMessage;
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.error?.message || `API request failed with status ${response.status}`;
-      } catch {
-        errorMessage = `API request failed with status ${response.status}: ${errorText}`;
-      }
-      
-      return new Response(
-        JSON.stringify({ error: errorMessage }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Parse OpenRouter response
-    const data = await response.json();
-    console.log("Received response from OpenRouter");
+    // Call OpenRouter API with better error handling and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
-    // Extract the content from the first choice's message
-    if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
-      console.error("Unexpected API response format:", JSON.stringify(data));
-      return new Response(
-        JSON.stringify({ error: "Could not extract content from API response" }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const content = data.choices[0].message.content;
-    console.log("Extracted content from OpenRouter response");
-    
-    // Parse the JSON content from the response
     try {
-      // The AI might include markdown code blocks or other text, so we need to extract just the JSON
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```([\s\S]*?)```/) || [null, content];
-      const jsonContent = jsonMatch[1] || content;
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://solveuxq.vercel.app", 
+          "X-Title": "SolveUXQ", 
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini as requested
+          "messages": [
+            {
+              "role": "user",
+              "content": prompt
+            }
+          ],
+          "temperature": 0.7,
+          "max_tokens": 4000
+        }),
+        signal: controller.signal
+      });
       
-      // Try to parse the JSON
-      const parsedQuiz = JSON.parse(jsonContent.trim());
-      
-      if (!parsedQuiz.questions || !Array.isArray(parsedQuiz.questions)) {
-        console.error("Invalid quiz format - missing questions array:", parsedQuiz);
+      clearTimeout(timeoutId);
+
+      // Check HTTP status and handle errors
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`OpenRouter API Error (${response.status}):`, errorText);
+        
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || `API request failed with status ${response.status}`;
+        } catch {
+          errorMessage = `API request failed with status ${response.status}: ${errorText}`;
+        }
+        
         return new Response(
-          JSON.stringify({ error: "Invalid quiz format generated" }),
+          JSON.stringify({ error: errorMessage }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Parse OpenRouter response
+      const data = await response.json();
+      console.log("Received response from OpenRouter");
+      
+      // Extract the content from the first choice's message
+      if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
+        console.error("Unexpected API response format:", JSON.stringify(data));
+        return new Response(
+          JSON.stringify({ error: "Could not extract content from API response" }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
-      console.log(`Successfully generated ${parsedQuiz.questions.length} questions`);
+      const content = data.choices[0].message.content;
+      console.log("Extracted content from OpenRouter response");
       
-      return new Response(
-        JSON.stringify(parsedQuiz),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (parseError) {
-      console.error("Error parsing JSON from AI response:", parseError);
-      console.log("Raw content:", content);
+      // Parse the JSON content from the response
+      try {
+        // The AI might include markdown code blocks or other text, so we need to extract just the JSON
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```([\s\S]*?)```/) || [null, content];
+        const jsonContent = jsonMatch[1] || content;
+        
+        // Try to parse the JSON
+        const parsedQuiz = JSON.parse(jsonContent.trim());
+        
+        if (!parsedQuiz.questions || !Array.isArray(parsedQuiz.questions)) {
+          console.error("Invalid quiz format - missing questions array:", parsedQuiz);
+          return new Response(
+            JSON.stringify({ error: "Invalid quiz format generated" }),
+            { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log(`Successfully generated ${parsedQuiz.questions.length} questions`);
+        
+        return new Response(
+          JSON.stringify(parsedQuiz),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (parseError) {
+        console.error("Error parsing JSON from AI response:", parseError);
+        console.log("Raw content:", content);
+        
+        // Return a more detailed error for debugging
+        return new Response(
+          JSON.stringify({ 
+            error: "Failed to parse quiz data", 
+            details: parseError.message,
+            rawContentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '') 
+          }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
       
-      // Return a more detailed error for debugging
+      console.error("Fetch error calling OpenRouter:", fetchError);
       return new Response(
         JSON.stringify({ 
-          error: "Failed to parse quiz data", 
-          details: parseError.message,
-          rawContentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '') 
+          error: fetchError.name === 'AbortError' 
+            ? 'Request timed out after 60 seconds' 
+            : `Fetch error: ${fetchError.message}` 
         }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
   } catch (error) {
     console.error("Unexpected error in generate-quiz function:", error);
     return new Response(
