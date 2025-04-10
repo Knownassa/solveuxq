@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
@@ -8,19 +8,117 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, Settings, User, CreditCard, BarChart3 } from 'lucide-react';
+import { InfoIcon, Settings, User, CreditCard, BarChart3, TrendingUp } from 'lucide-react';
+import { ChartContainer } from "@/components/ui/chart";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CategoryProgress {
+  category_name: string;
+  score: number;
+  quizzes_completed: number;
+}
+
+interface QuizHistory {
+  date: string;
+  points: number;
+  score: number;
+}
 
 const AccountPage = () => {
+  const { userId } = useAuth();
   const { user } = useUser();
   
-  // Mock data for user stats
-  const userStats = {
-    quizzesCompleted: 23,
-    averageScore: 76,
-    rank: 3,
+  const [userStats, setUserStats] = useState({
+    quizzesCompleted: 0,
+    averageScore: 0,
+    totalPoints: 0,
+    rank: 0,
     currentPlan: "Free Solver",
     quizzesRemaining: 7,
-    streak: 5
+    streak: 0
+  });
+
+  const [categoryProgress, setCategoryProgress] = useState<CategoryProgress[]>([]);
+  const [quizHistory, setQuizHistory] = useState<QuizHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Only fetch data if the user is logged in
+    if (userId) {
+      fetchUserStats();
+    }
+  }, [userId]);
+
+  const fetchUserStats = async () => {
+    setIsLoading(true);
+    try {
+      // Get user statistics
+      const { data: statsData, error: statsError } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (statsError && statsError.code !== 'PGRST116') {
+        console.error("Error fetching user stats:", statsError);
+      }
+      
+      // Get category progress
+      const { data: progressData, error: progressError } = await supabase
+        .from('category_progress_view')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (progressError) {
+        console.error("Error fetching category progress:", progressError);
+      }
+      
+      // Get quiz history
+      const { data: historyData, error: historyError } = await supabase
+        .from('quiz_history_view')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: true })
+        .limit(14);
+      
+      if (historyError) {
+        console.error("Error fetching quiz history:", historyError);
+      }
+      
+      // Update state with the fetched data
+      if (statsData) {
+        setUserStats({
+          quizzesCompleted: statsData.quizzes_completed || 0,
+          averageScore: statsData.average_score || 0,
+          totalPoints: statsData.total_points || 0,
+          rank: statsData.rank || 0,
+          currentPlan: "Free Solver", // This could come from a subscription table in the future
+          quizzesRemaining: 10 - (statsData.daily_quizzes || 0),
+          streak: statsData.streak || 0
+        });
+      }
+      
+      if (progressData) {
+        setCategoryProgress(progressData.map(item => ({
+          category_name: item.category_name,
+          score: item.average_score || 0,
+          quizzes_completed: item.quizzes_completed || 0
+        })));
+      }
+      
+      if (historyData) {
+        setQuizHistory(historyData.map(item => ({
+          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          points: item.points_earned || 0,
+          score: item.score_percentage || 0
+        })));
+      }
+    } catch (error) {
+      console.error("Error in data fetching:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -49,6 +147,10 @@ const AccountPage = () => {
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
               </TabsTrigger>
+              <TabsTrigger value="performance" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Performance</span>
+              </TabsTrigger>
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Profile</span>
@@ -72,7 +174,7 @@ const AccountPage = () => {
                   <CardContent>
                     <div className="text-2xl font-bold">{userStats.quizzesCompleted}</div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      +3 from last week
+                      Keep learning to improve your knowledge
                     </p>
                   </CardContent>
                 </Card>
@@ -84,19 +186,19 @@ const AccountPage = () => {
                   <CardContent>
                     <div className="text-2xl font-bold">{userStats.averageScore}%</div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      +2% from last week
+                      Across all quizzes taken
                     </p>
                   </CardContent>
                 </Card>
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Daily Quizzes Remaining</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Points</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{userStats.quizzesRemaining}/10</div>
+                    <div className="text-2xl font-bold">{userStats.totalPoints}</div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Resets at midnight
+                      Earn more by completing quizzes
                     </p>
                   </CardContent>
                 </Card>
@@ -118,14 +220,182 @@ const AccountPage = () => {
                       <div className="font-medium">{userStats.streak} days</div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Badges Earned</div>
-                      <div className="font-medium">3</div>
+                      <div className="text-sm font-medium">Daily Quizzes Remaining</div>
+                      <div className="font-medium">{userStats.quizzesRemaining}/10</div>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="pt-2">
                   <Button variant="outline" size="sm" className="w-full">View Detailed Stats</Button>
                 </CardFooter>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="performance" className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Knowledge Areas</CardTitle>
+                    <CardDescription>Your performance across different categories</CardDescription>
+                  </CardHeader>
+                  <CardContent className="px-2">
+                    <div className="h-[300px] w-full">
+                      {!isLoading && categoryProgress.length > 0 ? (
+                        <ChartContainer 
+                          config={{ 
+                            score: { 
+                              theme: { 
+                                light: "#0ea5e9", 
+                                dark: "#38bdf8" 
+                              } 
+                            },
+                            quizzes: { 
+                              theme: { 
+                                light: "#8b5cf6", 
+                                dark: "#a78bfa" 
+                              } 
+                            }
+                          }}
+                        >
+                          <RadarChart data={categoryProgress}>
+                            <PolarGrid />
+                            <PolarAngleAxis dataKey="category_name" />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                            <Radar
+                              name="Score (%)"
+                              dataKey="score"
+                              stroke="var(--color-score)"
+                              fill="var(--color-score)"
+                              fillOpacity={0.3}
+                            />
+                            <Tooltip />
+                            <Legend />
+                          </RadarChart>
+                        </ChartContainer>
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          {isLoading ? (
+                            <p>Loading data...</p>
+                          ) : (
+                            <p className="text-muted-foreground text-center">
+                              No category data available yet.
+                              <br />
+                              Complete some quizzes to see your performance!
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Learning Progress</CardTitle>
+                    <CardDescription>Your quiz scores over time</CardDescription>
+                  </CardHeader>
+                  <CardContent className="px-2">
+                    <div className="h-[300px] w-full">
+                      {!isLoading && quizHistory.length > 0 ? (
+                        <ChartContainer 
+                          config={{ 
+                            score: { 
+                              theme: { 
+                                light: "#0ea5e9", 
+                                dark: "#38bdf8" 
+                              } 
+                            },
+                            points: { 
+                              theme: { 
+                                light: "#8b5cf6", 
+                                dark: "#a78bfa" 
+                              } 
+                            }
+                          }}
+                        >
+                          <LineChart data={quizHistory}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis yAxisId="left" />
+                            <YAxis yAxisId="right" orientation="right" />
+                            <Tooltip />
+                            <Legend />
+                            <Line
+                              yAxisId="left"
+                              type="monotone"
+                              dataKey="score"
+                              name="Score (%)"
+                              stroke="var(--color-score)"
+                              activeDot={{ r: 8 }}
+                            />
+                            <Line
+                              yAxisId="right"
+                              type="monotone"
+                              dataKey="points"
+                              name="Points"
+                              stroke="var(--color-points)"
+                            />
+                          </LineChart>
+                        </ChartContainer>
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          {isLoading ? (
+                            <p>Loading data...</p>
+                          ) : (
+                            <p className="text-muted-foreground text-center">
+                              No history data available yet.
+                              <br />
+                              Complete some quizzes to see your progress!
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Categories Mastery</CardTitle>
+                  <CardDescription>Your progress in different subject areas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {!isLoading && categoryProgress.length > 0 ? (
+                    <div className="space-y-4">
+                      {categoryProgress.map((category) => (
+                        <div key={category.category_name} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">{category.category_name}</div>
+                            <div className="text-sm text-muted-foreground">{category.score}% mastery</div>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div 
+                              className="h-full rounded-full bg-primary" 
+                              style={{ width: `${category.score}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {category.quizzes_completed} quizzes completed
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center">
+                      {isLoading ? (
+                        <p>Loading mastery data...</p>
+                      ) : (
+                        <>
+                          <p className="text-muted-foreground mb-4">
+                            You haven't completed any quizzes yet.
+                          </p>
+                          <Button>Take Your First Quiz</Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
               </Card>
             </TabsContent>
 

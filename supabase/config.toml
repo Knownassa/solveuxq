@@ -63,3 +63,8 @@ port = 54328
 [functions.generate-quiz]
 verify_jwt = false
 timeouts = { read = 60, connect = 10, write = 10 }
+
+# Function configs for the generate-study-material function
+[functions.generate-study-material]
+verify_jwt = false
+timeouts = { read = 60, connect = 10, write = 10 }

@@ -6,7 +6,7 @@
  * @returns A promise that resolves with the AI's response content or rejects with an error.
  */
 export async function getOpenRouterCompletion(userContent: string): Promise<string> {
-  // IMPORTANT: We're using Supabase Secrets now for API keys, not hardcoded values
+  // Use the API key from environment or from Supabase secrets
   const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
   // Use the API key from environment or server-side context
   const apiKey = "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";
@@ -15,14 +15,14 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
     console.log("Sending request to OpenRouter API");
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout - reduced from 30 seconds
     
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://solveuxq.vercel.app", // Optional. Your site URL
-        "X-Title": "SolveUXQ", // Optional. Your site title
+        "HTTP-Referer": "https://solveuxq.vercel.app", 
+        "X-Title": "SolveUXQ", 
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -30,10 +30,11 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
         "messages": [
           {
             "role": "user",
-            "content": userContent // Use the dynamic user content
+            "content": userContent
           }
         ],
-        "temperature": 0.7
+        "temperature": 0.5, // Lower temperature for faster, more predictable responses
+        "max_tokens": 1024 // Limiting token count for faster responses
       }),
       signal: controller.signal
     });
@@ -69,7 +70,7 @@ export async function getOpenRouterCompletion(userContent: string): Promise<stri
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error("Request timed out");
-      throw new Error("Request timed out after 30 seconds. Please try again.");
+      throw new Error("Request timed out after 20 seconds. Please try again.");
     }
     
     console.error("Error fetching from OpenRouter:", error);

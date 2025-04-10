@@ -53,7 +53,7 @@ serve(async (req) => {
 
     console.log(`Generating quiz: ${category}, ${industry || 'general knowledge'}, ${level}, ${num_questions} questions`);
 
-    // Construct the prompt for quiz generation
+    // Simplified prompt for faster generation
     const prompt = `Generate a quiz about ${category} with focus on ${industry || 'general knowledge'} 
     at ${level} level with exactly ${num_questions} questions.
     
@@ -72,19 +72,19 @@ serve(async (req) => {
             {"id": "d", "text": "Option D"}
           ],
           "correctOptionId": "a",
-          "explanation": "Explanation of why this is the correct answer"
+          "explanation": "Brief explanation"
         },
         ... more questions
       ]
     }
     
-    Make sure the quiz is challenging but fair. Do not add any commentary before or after the JSON.`;
+    Make the questions concise and direct. Return just the JSON, nothing else.`;
 
     console.log("Calling OpenRouter API...");
     
-    // Call OpenRouter API with better error handling and timeout
+    // Call OpenRouter API with better error handling and reduced timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (reduced from 60)
     
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -96,15 +96,15 @@ serve(async (req) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini as requested
+          "model": "google/gemini-2.5-pro-exp-03-25:free", 
           "messages": [
             {
               "role": "user",
               "content": prompt
             }
           ],
-          "temperature": 0.7,
-          "max_tokens": 4000
+          "temperature": 0.3, // Lower temperature for faster, more predictable responses
+          "max_tokens": 3000 // Slightly reduced token count for faster responses
         }),
         signal: controller.signal
       });
@@ -190,7 +190,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: fetchError.name === 'AbortError' 
-            ? 'Request timed out after 60 seconds' 
+            ? 'Request timed out after 45 seconds' 
             : `Fetch error: ${fetchError.message}` 
         }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

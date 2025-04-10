@@ -27,6 +27,8 @@ serve(async (req) => {
       );
     }
     
+    console.log(`Generating study material for ${category}: ${topic}`);
+    
     // Define word count based on requested length
     let wordCount;
     switch (length) {
@@ -50,55 +52,71 @@ serve(async (req) => {
       - A brief summary or conclusion
     `;
     
-    console.log(`Generating study material for ${category}: ${topic}`);
+    // Make request to OpenRouter API with a shorter timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout
     
-    // Make request to OpenRouter API
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openrouterApiKey}`,
-        "HTTP-Referer": "https://solveuxq.vercel.app",
-        "X-Title": "SolveUXQ Study Material Generator",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        "model": "google/gemini-2.0-flash-exp:free",
-        "messages": [
-          {
-            "role": "user",
-            "content": prompt
-          }
-        ]
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenRouter API Error:", errorData);
-      throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Extract the generated content
-    if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-      const generatedContent = data.choices[0].message.content;
-      
-      // Create a title based on the topic
-      const title = `${topic.charAt(0).toUpperCase() + topic.slice(1)} - ${category} Guide`;
-      
-      return new Response(
-        JSON.stringify({ 
-          title, 
-          content: generatedContent,
-          category,
-          topic 
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openrouterApiKey}`,
+          "HTTP-Referer": "https://solveuxq.vercel.app",
+          "X-Title": "SolveUXQ Study Material Generator",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "google/gemini-2.5-pro-exp-03-25:free", // Using Gemini as requested
+          "messages": [
+            {
+              "role": "user",
+              "content": prompt
+            }
+          ],
+          "temperature": 0.5, // Lower temperature for more predictable responses
+          "max_tokens": 2048 // Limit token count for faster responses
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      console.error("Unexpected API response format:", data);
-      throw new Error("Could not extract content from API response");
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenRouter API Error:", errorData);
+        throw new Error(`API request failed with status ${response.status}: ${errorData.error?.message || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Extract the generated content
+      if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+        const generatedContent = data.choices[0].message.content;
+        
+        // Create a title based on the topic
+        const title = `${topic.charAt(0).toUpperCase() + topic.slice(1)} - ${category} Guide`;
+        
+        return new Response(
+          JSON.stringify({ 
+            title, 
+            content: generatedContent,
+            category,
+            topic 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        console.error("Unexpected API response format:", data);
+        throw new Error("Could not extract content from API response");
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Study material generation timed out after 40 seconds');
+      }
+      
+      throw fetchError;
     }
   } catch (error) {
     console.error("Error in generate-study-material function:", error);
