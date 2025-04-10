@@ -68,3 +68,13 @@ timeouts = { read = 60, connect = 10, write = 10 }
 [functions.generate-study-material]
 verify_jwt = false
 timeouts = { read = 60, connect = 10, write = 10 }
+
+# Function configs for the quiz-points function
+[functions.quiz-points]
+verify_jwt = false
+timeouts = { read = 20, connect = 10, write = 10 }
+
+# Function configs for the get-user-stats function
+[functions.get-user-stats]
+verify_jwt = false
+timeouts = { read = 10, connect = 5, write = 5 }
