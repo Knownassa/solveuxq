@@ -43,20 +43,24 @@ const App = () => (
             
             {/* Auth Routes - Use wildcards to support Clerk's routing patterns */}
             <Route path="/sign-in/*" element={
-              <SignedIn>
-                <Navigate to="/study" replace />
-              </SignedIn>
-              <SignedOut>
-                <SignInPage />
-              </SignedOut>
+              <>
+                <SignedIn>
+                  <Navigate to="/study" replace />
+                </SignedIn>
+                <SignedOut>
+                  <SignInPage />
+                </SignedOut>
+              </>
             } />
             <Route path="/sign-up/*" element={
-              <SignedIn>
-                <Navigate to="/study" replace />
-              </SignedIn>
-              <SignedOut>
-                <SignUpPage />
-              </SignedOut>
+              <>
+                <SignedIn>
+                  <Navigate to="/study" replace />
+                </SignedIn>
+                <SignedOut>
+                  <SignUpPage />
+                </SignedOut>
+              </>
             } />
             
             {/* Protected Routes */}
