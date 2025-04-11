@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { MoonIcon, SunIcon, Menu, X } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
@@ -15,11 +15,15 @@ import {
 } from '@/components/ui/sheet';
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/clerk-react";
 
-const Navbar = () => {
+interface NavbarProps {
+  isLandingPage?: boolean;
+}
+
+const Navbar = ({ isLandingPage = false }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,56 +35,98 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const NavLinks = () => (
-    <>
-      <Link
-        to="/"
-        className={cn(
-          "text-sm font-medium transition-colors",
-          location.pathname === "/"
-            ? "text-primary"
-            : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
-        )}
-      >
-        Home
-      </Link>
-      <Link
-        to="/study"
-        className={cn(
-          "text-sm font-medium transition-colors relative flex items-center",
-          location.pathname === "/study"
-            ? "text-primary"
-            : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
-        )}
-      >
-        Study
-        <Badge className="ml-2 text-[0.6rem] absolute -top-2 right-[-30px] md:relative md:top-0 md:right-0">Coming Soon</Badge>
-      </Link>
-      <Link
-        to="/quizzes"
-        className={cn(
-          "text-sm font-medium transition-colors",
-          location.pathname === "/quizzes"
-            ? "text-primary"
-            : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
-        )}
-      >
-        Quizzes
-      </Link>
-      <Link
-        to="/about"
-        className={cn(
-          "text-sm font-medium transition-colors",
-          location.pathname === "/about"
-            ? "text-primary"
-            : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
-        )}
-      >
-        About
-      </Link>
-    </>
-  );
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (!isLandingPage) {
+      e.preventDefault();
+      navigate('/study');
+    }
+  };
 
+  const NavLinks = () => {
+    // Different navigation links based on whether it's the landing page or the app
+    if (isLandingPage) {
+      return (
+        <>
+          <a
+            href="#features"
+            className="text-sm font-medium transition-colors text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          >
+            Features
+          </a>
+          <a
+            href="#categories"
+            className="text-sm font-medium transition-colors text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          >
+            Categories
+          </a>
+          <a
+            href="#about"
+            className="text-sm font-medium transition-colors text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          >
+            About
+          </a>
+          <a
+            href="#pricing"
+            className="text-sm font-medium transition-colors text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          >
+            Pricing
+          </a>
+        </>
+      );
+    }
+    
+    // App navigation
+    return (
+      <>
+        <Link
+          to="/study"
+          className={cn(
+            "text-sm font-medium transition-colors",
+            location.pathname.startsWith("/study")
+              ? "text-primary"
+              : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          )}
+        >
+          Study
+        </Link>
+        <Link
+          to="/quizzes"
+          className={cn(
+            "text-sm font-medium transition-colors",
+            location.pathname.startsWith("/quizzes") || location.pathname.startsWith("/category") || location.pathname.startsWith("/quiz")
+              ? "text-primary"
+              : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          )}
+        >
+          Quizzes
+        </Link>
+        <Link
+          to="/leaderboard"
+          className={cn(
+            "text-sm font-medium transition-colors",
+            location.pathname === "/leaderboard"
+              ? "text-primary"
+              : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          )}
+        >
+          Leaderboard
+        </Link>
+        <Link
+          to="/account"
+          className={cn(
+            "text-sm font-medium transition-colors",
+            location.pathname === "/account"
+              ? "text-primary"
+              : "text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary"
+          )}
+        >
+          My Account
+        </Link>
+      </>
+    );
+  };
+
+  // The rest of the component stays the same, but we update the Logo click handler
   return (
     <header
       className={cn(
@@ -92,7 +138,11 @@ const Navbar = () => {
     >
       <div className="container max-w-7xl mx-auto px-6">
         <nav className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
+          <Link 
+            to={isLandingPage ? "/" : "/study"} 
+            className="flex items-center gap-2"
+            onClick={handleLogoClick}
+          >
             <span className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
               Solveuxq
             </span>
@@ -156,51 +206,81 @@ const Navbar = () => {
                 </SheetHeader>
                 <div className="flex flex-col gap-6 mt-8">
                   <div className="flex flex-col gap-4">
-                    <Link
-                      to="/"
-                      className={cn(
-                        "text-base font-medium transition-colors px-2 py-2 rounded-md",
-                        location.pathname === "/"
-                          ? "text-primary bg-primary/5"
-                          : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
-                      )}
-                    >
-                      Home
-                    </Link>
-                    <Link
-                      to="/study"
-                      className={cn(
-                        "text-base font-medium transition-colors px-2 py-2 rounded-md flex items-center",
-                        location.pathname === "/study"
-                          ? "text-primary bg-primary/5"
-                          : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
-                      )}
-                    >
-                      Study
-                      <Badge className="ml-2 text-[0.6rem]">Coming Soon</Badge>
-                    </Link>
-                    <Link
-                      to="/quizzes"
-                      className={cn(
-                        "text-base font-medium transition-colors px-2 py-2 rounded-md",
-                        location.pathname === "/quizzes"
-                          ? "text-primary bg-primary/5"
-                          : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
-                      )}
-                    >
-                      Quizzes
-                    </Link>
-                    <Link
-                      to="/about"
-                      className={cn(
-                        "text-base font-medium transition-colors px-2 py-2 rounded-md",
-                        location.pathname === "/about"
-                          ? "text-primary bg-primary/5"
-                          : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
-                      )}
-                    >
-                      About
-                    </Link>
+                    {isLandingPage ? (
+                      <>
+                        <a
+                          href="#features"
+                          className="text-base font-medium transition-colors px-2 py-2 rounded-md text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                        >
+                          Features
+                        </a>
+                        <a
+                          href="#categories"
+                          className="text-base font-medium transition-colors px-2 py-2 rounded-md text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                        >
+                          Categories
+                        </a>
+                        <a
+                          href="#about"
+                          className="text-base font-medium transition-colors px-2 py-2 rounded-md text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                        >
+                          About
+                        </a>
+                        <a
+                          href="#pricing"
+                          className="text-base font-medium transition-colors px-2 py-2 rounded-md text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                        >
+                          Pricing
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          to="/study"
+                          className={cn(
+                            "text-base font-medium transition-colors px-2 py-2 rounded-md",
+                            location.pathname.startsWith("/study")
+                              ? "text-primary bg-primary/5"
+                              : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                          )}
+                        >
+                          Study
+                        </Link>
+                        <Link
+                          to="/quizzes"
+                          className={cn(
+                            "text-base font-medium transition-colors px-2 py-2 rounded-md",
+                            location.pathname.startsWith("/quizzes") || location.pathname.startsWith("/category") || location.pathname.startsWith("/quiz")
+                              ? "text-primary bg-primary/5"
+                              : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                          )}
+                        >
+                          Quizzes
+                        </Link>
+                        <Link
+                          to="/leaderboard"
+                          className={cn(
+                            "text-base font-medium transition-colors px-2 py-2 rounded-md",
+                            location.pathname === "/leaderboard"
+                              ? "text-primary bg-primary/5"
+                              : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                          )}
+                        >
+                          Leaderboard
+                        </Link>
+                        <Link
+                          to="/account"
+                          className={cn(
+                            "text-base font-medium transition-colors px-2 py-2 rounded-md",
+                            location.pathname === "/account"
+                              ? "text-primary bg-primary/5"
+                              : "text-gray-800 dark:text-gray-200 hover:text-primary hover:bg-primary/5 dark:hover:text-primary"
+                          )}
+                        >
+                          My Account
+                        </Link>
+                      </>
+                    )}
                   </div>
                   
                   <div className="pt-4 border-t border-gray-200 dark:border-gray-700">

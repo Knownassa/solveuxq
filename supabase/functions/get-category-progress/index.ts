@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, categoryId, level } = await req.json();
     
     if (!userId) {
       return new Response(
@@ -31,25 +31,63 @@ serve(async (req) => {
     // Create Supabase client with service role for admin access
     const supabase = createClient(supabaseUrl, supabaseServiceRole);
     
-    // Get category progress data
-    const { data, error } = await supabase
-      .from('category_progress_view')
-      .select('*')
-      .eq('user_id', userId);
+    // Prepare query based on parameters
+    let query = supabase.from('category_progress_view').select('*');
     
-    if (error) {
+    // Apply filters based on provided parameters
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    if (categoryId) {
+      query = query.eq('category_id', categoryId);
+    }
+    
+    // Get category progress data
+    const { data: progressData, error: progressError } = await query;
+    
+    if (progressError) {
       return new Response(
         JSON.stringify({ 
-          error: `Error fetching category progress: ${error.message}`,
-          details: error
+          error: `Error fetching category progress: ${progressError.message}`,
+          details: progressError
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Return the category progress data
+    // If there's a specific categoryId and level, fetch quizzes for that category/level
+    let quizData = null;
+    let quizError = null;
+    
+    if (categoryId && level !== undefined) {
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*, quiz_options(*)')
+        .eq('category_id', categoryId)
+        .eq('level', level)
+        .order('position', { ascending: true });
+      
+      quizData = data;
+      quizError = error;
+      
+      if (quizError) {
+        return new Response(
+          JSON.stringify({ 
+            error: `Error fetching quizzes: ${quizError.message}`,
+            details: quizError
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // Return the data
     return new Response(
-      JSON.stringify({ data }),
+      JSON.stringify({ 
+        progress: progressData,
+        quizzes: quizData
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
