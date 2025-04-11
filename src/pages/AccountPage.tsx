@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Settings, User, CreditCard, BarChart3, TrendingUp } from 'lucide-react';
 import { ChartContainer } from "@/components/ui/chart";
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, 
+  Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid 
+} from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 
 interface CategoryProgress {
@@ -79,14 +81,17 @@ const AccountPage = () => {
       
       const statsData = await response.json();
       
-      // Get category progress data
-      const { data: progressData, error: progressError } = await supabase
-        .from('category_progress_view')
-        .select('*')
-        .eq('user_id', userId);
+      // Get category progress data through our edge function rather than direct Supabase query
+      const categoryResponse = await fetch('https://drgjgkroprkycxdjuknr.supabase.co/functions/v1/get-category-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId })
+      });
       
-      if (progressError) {
-        console.error("Error fetching category progress:", progressError);
+      if (!categoryResponse.ok) {
+        console.error("Error fetching category progress:", categoryResponse.statusText);
         toast({
           title: "Error",
           description: "Failed to load category progress data",
@@ -94,22 +99,27 @@ const AccountPage = () => {
         });
       }
       
-      // Get quiz history with Supabase
-      const { data: historyData, error: historyError } = await supabase
-        .from('quiz_history_view')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: true })
-        .limit(14);
+      const progressData = await categoryResponse.json();
       
-      if (historyError) {
-        console.error("Error fetching quiz history:", historyError);
+      // Get quiz history through our edge function
+      const historyResponse = await fetch('https://drgjgkroprkycxdjuknr.supabase.co/functions/v1/get-quiz-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, limit: 14 })
+      });
+      
+      if (!historyResponse.ok) {
+        console.error("Error fetching quiz history:", historyResponse.statusText);
         toast({
           title: "Error",
           description: "Failed to load quiz history data",
           variant: "destructive"
         });
       }
+      
+      const historyData = await historyResponse.json();
       
       // Update state with the fetched data
       if (statsData) {
@@ -124,16 +134,16 @@ const AccountPage = () => {
         });
       }
       
-      if (progressData) {
-        setCategoryProgress(progressData.map((item: any) => ({
+      if (progressData && progressData.data) {
+        setCategoryProgress(progressData.data.map((item: any) => ({
           category_name: item.category_name,
           score: item.average_score || 0,
           quizzes_completed: item.quizzes_completed || 0
         })));
       }
       
-      if (historyData) {
-        setQuizHistory(historyData.map((item: any) => ({
+      if (historyData && historyData.data) {
+        setQuizHistory(historyData.data.map((item: any) => ({
           date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           points: item.points_earned || 0,
           score: item.score_percentage || 0
