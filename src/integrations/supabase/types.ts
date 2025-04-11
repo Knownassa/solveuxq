@@ -9,6 +9,85 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      category_progress: {
+        Row: {
+          average_score: number | null
+          category_id: string
+          created_at: string | null
+          id: string
+          quizzes_completed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_score?: number | null
+          category_id: string
+          created_at?: string | null
+          id?: string
+          quizzes_completed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_score?: number | null
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          quizzes_completed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_progress_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "study_material_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          category_id: string
+          correct_answers: number
+          created_at: string | null
+          id: string
+          points_earned: number
+          score_percentage: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          correct_answers: number
+          created_at?: string | null
+          id?: string
+          points_earned: number
+          score_percentage: number
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          correct_answers?: number
+          created_at?: string | null
+          id?: string
+          points_earned?: number
+          score_percentage?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "study_material_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_material_categories: {
         Row: {
           created_at: string
@@ -65,12 +144,94 @@ export type Database = {
           },
         ]
       }
+      user_stats: {
+        Row: {
+          average_score: number | null
+          created_at: string | null
+          daily_quizzes: number | null
+          id: string
+          quizzes_completed: number | null
+          rank: number | null
+          streak: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_score?: number | null
+          created_at?: string | null
+          daily_quizzes?: number | null
+          id?: string
+          quizzes_completed?: number | null
+          rank?: number | null
+          streak?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_score?: number | null
+          created_at?: string | null
+          daily_quizzes?: number | null
+          id?: string
+          quizzes_completed?: number | null
+          rank?: number | null
+          streak?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      category_progress_view: {
+        Row: {
+          average_score: number | null
+          category_id: string | null
+          category_name: string | null
+          quizzes_completed: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_progress_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "study_material_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_history_view: {
+        Row: {
+          date: string | null
+          points_earned: number | null
+          score_percentage: number | null
+          user_id: string | null
+        }
+        Insert: {
+          date?: never
+          points_earned?: number | null
+          score_percentage?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          date?: never
+          points_earned?: number | null
+          score_percentage?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      increment_user_points: {
+        Args: { user_id_param: string; points_to_add: number }
+        Returns: {
+          new_points: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

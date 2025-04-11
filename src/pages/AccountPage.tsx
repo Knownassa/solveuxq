@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import { useAuth, useUser } from '@clerk/clerk-react';
@@ -11,6 +12,7 @@ import { InfoIcon, Settings, User, CreditCard, BarChart3, TrendingUp } from 'luc
 import { ChartContainer } from "@/components/ui/chart";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CategoryProgress {
   category_name: string;
@@ -36,6 +38,7 @@ interface UserStats {
 const AccountPage = () => {
   const { userId } = useAuth();
   const { user } = useUser();
+  const { toast } = useToast();
   
   const [userStats, setUserStats] = useState({
     quizzesCompleted: 0,
@@ -61,26 +64,52 @@ const AccountPage = () => {
   const fetchUserStats = async () => {
     setIsLoading(true);
     try {
-      // Use custom RPC call for user stats to avoid TypeScript issues
-      const { data: statsData } = await supabase.rpc('get_user_stats', { user_id_param: userId });
-      
-      // Use fetch for views since they're not in the TypeScript definitions
-      const progressResponse = await fetch(`https://drgjgkroprkycxdjuknr.supabase.co/rest/v1/category_progress_view?user_id=eq.${userId}`, {
+      // Fetch user stats from the Edge Function
+      const response = await fetch('https://drgjgkroprkycxdjuknr.supabase.co/functions/v1/get-user-stats', {
+        method: 'POST',
         headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZ2pna3JvcHJreWN4ZGp1a25yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyODE5NTksImV4cCI6MjA1ODg1Nzk1OX0.wCHCSFbQu4xxOUY_xQcLgMUShX4oj8jSuAt8ha9HzjI',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZ2pna3JvcHJreWN4ZGp1a25yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyODE5NTksImV4cCI6MjA1ODg1Nzk1OX0.wCHCSFbQu4xxOUY_xQcLgMUShX4oj8jSuAt8ha9HzjI`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId })
       });
-      const progressData = await progressResponse.json();
       
-      // Get quiz history with fetch
-      const historyResponse = await fetch(`https://drgjgkroprkycxdjuknr.supabase.co/rest/v1/quiz_history_view?user_id=eq.${userId}&order=date.asc&limit=14`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZ2pna3JvcHJreWN4ZGp1a25yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyODE5NTksImV4cCI6MjA1ODg1Nzk1OX0.wCHCSFbQu4xxOUY_xQcLgMUShX4oj8jSuAt8ha9HzjI',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZ2pna3JvcHJreWN4ZGp1a25yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyODE5NTksImV4cCI6MjA1ODg1Nzk1OX0.wCHCSFbQu4xxOUY_xQcLgMUShX4oj8jSuAt8ha9HzjI`
-        }
-      });
-      const historyData = await historyResponse.json();
+      if (!response.ok) {
+        throw new Error(`Error fetching user stats: ${response.statusText}`);
+      }
+      
+      const statsData = await response.json();
+      
+      // Get category progress data
+      const { data: progressData, error: progressError } = await supabase
+        .from('category_progress_view')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (progressError) {
+        console.error("Error fetching category progress:", progressError);
+        toast({
+          title: "Error",
+          description: "Failed to load category progress data",
+          variant: "destructive"
+        });
+      }
+      
+      // Get quiz history with Supabase
+      const { data: historyData, error: historyError } = await supabase
+        .from('quiz_history_view')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: true })
+        .limit(14);
+      
+      if (historyError) {
+        console.error("Error fetching quiz history:", historyError);
+        toast({
+          title: "Error",
+          description: "Failed to load quiz history data",
+          variant: "destructive"
+        });
+      }
       
       // Update state with the fetched data
       if (statsData) {
@@ -112,6 +141,11 @@ const AccountPage = () => {
       }
     } catch (error) {
       console.error("Error in data fetching:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load account data. Please try again later.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
